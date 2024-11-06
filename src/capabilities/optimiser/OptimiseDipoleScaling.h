@@ -68,7 +68,6 @@ struct OptDipoleFunctor : TFunctor<double> {
     int no_parameter;
     int no_points;
     std::vector<Molecule> m_conformers;
-    bool m_bond;
 
     int inputs() const { return no_parameter; }
     int values() const { return no_points; }
@@ -76,11 +75,10 @@ struct OptDipoleFunctor : TFunctor<double> {
 
 struct OptDipoleFunctorNumericalDiff : Eigen::NumericalDiff<OptDipoleFunctor> {};
 
-inline Vector OptimiseDipoleScaling(const std::vector<Molecule>& conformers, Vector scaling, const bool bond = false) {
+inline Vector OptimiseDipoleScaling(const std::vector<Molecule>& conformers, Vector scaling) {
 
-    OptDipoleFunctor functor(2, conformers.size());
+    OptDipoleFunctor functor(scaling.size(), conformers.size());
     functor.m_conformers = conformers;
-    functor.m_bond = bond;
     Eigen::NumericalDiff numDiff(functor);
     Eigen::LevenbergMarquardt lm(numDiff);
 
@@ -114,10 +112,10 @@ inline Vector DipoleScalingCalculation(const std::vector<Molecule>& conformers)
 {
     const auto para_size = conformers[0].AtomCount();
     const auto conformer_size = conformers.size();
+    if (para_size > conformer_size)
+        std::cout << "to few conformers..." << std::endl;
     Matrix F(3*conformer_size,para_size); // Geometry multiplied with partial Charge
     Matrix y(3*conformer_size,1); //Dipoles
-    Matrix FTF = Matrix::Zero(para_size, para_size);
-    Matrix FTy = Matrix::Zero(para_size, 1);
     for (int i = 0; i < conformer_size; ++i) {
         y(3*i,0) = conformers[i].getDipole()[0];
         y(3*i+1,0) = conformers[i].getDipole()[1];
@@ -130,6 +128,18 @@ inline Vector DipoleScalingCalculation(const std::vector<Molecule>& conformers)
         }
     }
     const Vector Theta = (F.transpose()*F).colPivHouseholderQr().solve(F.transpose()*y);
+    const Vector Residuen = y - F*Theta;
+    const double var_residuen = Residuen.squaredNorm()/(3*conformer_size*para_size-para_size);
+    const double stdev_residuen = sqrt(var_residuen);
+    const Matrix FTFinv = (F.transpose()*F).inverse();
+    std::cout << "Confidence Interval" << std::endl;
+    for (int i = 0; i < para_size; ++i){
+        Eigen::RowVectorXd re = Eigen::RowVectorXd::Zero(para_size);
+        const double r = 1.960*(3*conformer_size*para_size-para_size)*FTFinv.col(i).norm()*stdev_residuen;
+        const double upper = Theta(i) + r;
+        const double under = Theta(i) - r;
+        std::cout << under << " < " << Theta(i) << " < " << upper << std::endl;
+    }
     //const Matrix H = (F*(F.transpose()*F).inverse()*F.transpose()).diagonal();
     //std::cout << "diag(H) x y z:" << std::endl;
     //for (int i = 0; i < H.rows()/3; ++i)
