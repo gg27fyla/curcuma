@@ -38,10 +38,9 @@ namespace fs = std::filesystem;
 #include "energycalculator.h"
 
 EnergyCalculator::EnergyCalculator(const std::string& method, const json& controller)
-    : m_method(method)
+    : m_controller(controller), m_method(method)
 
 {
-    m_controller = controller;
     if (controller.contains("param_file")) {
         m_param_file = controller["param_file"];
     }
@@ -65,6 +64,32 @@ EnergyCalculator::EnergyCalculator(const std::string& method, const json& contro
         m_ecengine = [this](bool gradient, bool verbose) {
             this->CalculateUFF(gradient, verbose);
         };
+    } else if (std::find(m_orca_methods.begin(), m_orca_methods.end(), m_method) != m_orca_methods.end()) { // ORCA energy calculator requested
+#ifdef USE_ORCA
+        m_orca = new OrcaInterface(controller);
+        m_ecengine = [this](bool gradient, bool verbose) {
+            this->CalculateOrca(gradient, verbose);
+            //m_error = this->m_orca->Error();
+        };
+        m_charges = [this]() {
+            return this->m_orca->getCharges();
+        };
+        m_dipole = [this]() {
+            Position dipole;
+            dipole(0) = this->m_orca->getDipole()[0];
+            dipole(1) = this->m_orca->getDipole()[1];
+            dipole(2) = this->m_orca->getDipole()[2];
+
+            return dipole;
+        };
+        m_bonds = [this]() {
+            return this->m_orca->getBondOrders();
+        };
+#else
+        std::cout << "ORCA was not included ..." << std::endl;
+        exit(1);
+#endif
+
     } else if (std::find(m_tblite_methods.begin(), m_tblite_methods.end(), m_method) != m_tblite_methods.end()) { // TBLite energy calculator requested
 #ifdef USE_TBLITE
         m_tblite = new TBLiteInterface(controller);
@@ -331,6 +356,29 @@ void EnergyCalculator::CalculateUFF(bool gradient, bool verbose)
         m_gradient = m_uff->Gradient();
         // m_gradient = m_uff->NumGrad();
     }
+}
+
+void EnergyCalculator::CalculateOrca(bool gradient, bool verbose)
+{
+#ifdef USE_ORCA
+
+    for (int i = 0; i < m_atoms; ++i) {
+        m_coord[3 * i + 0] = m_geometry(i, 0) / au;
+        m_coord[3 * i + 1] = m_geometry(i, 1) / au;
+        m_coord[3 * i + 2] = m_geometry(i, 2) / au;
+    }
+    m_orca->createInputFile();
+    m_orca->runOrca();
+
+    m_energy = m_orca->getEnergy();
+    if (gradient) {
+        for (int i = 0; i < m_atoms; ++i) {
+            m_gradient(i, 0) = m_grad[3 * i + 0] * au;
+            m_gradient(i, 1) = m_grad[3 * i + 1] * au;
+            m_gradient(i, 2) = m_grad[3 * i + 2] * au;
+        }
+    }
+#endif
 }
 
 void EnergyCalculator::CalculateTBlite(bool gradient, bool verbose)

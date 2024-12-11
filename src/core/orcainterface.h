@@ -1,36 +1,65 @@
-//
-// Created by gerd on 11.12.24.
-//
+/*
+* <Curcuma main file.>
+ * Copyright (C) 2019 - 2023 Conrad Hübler <Conrad.Huebler@gmx.net>
+ *               2024 Gerd Gehrisch <gg27fyla@student.freiberg.de>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
 #pragma once
-#ifndef ORCAINTERFACE_H
-#define ORCAINTERFACE_H
 
 #include "src/core/molecule.h"
 
 static json ORCASettings{
-        { "tb_acc", 1 },
-        { "tb_max_iter", 250 },
-        { "tb_damping", 0.4 },
-        { "tb_temp", 9.500e-4 },
-        { "tb_verbose", 0 },
-        { "tb_guess", "SAD" },
-        { "cpcm_solv", "none" },
-        { "alpb_solv", "none" },
-        { "cpcm_eps", -1 },
-        { "alpb_eps", -1 }
+        { "methode", "HF" },
+        { "basis", "def2-TZVPP" },
+        { "keyword", "ENGRAD" },
+        { "filetype", "xyzfile" },
+        { "charge", 0 },
+        { "mult", 1 },
+        { "basename", "input" },
 };
+
+static std::string ORCASettingsString = "! HF def2-TZYPP ENGRAD\n*xyzfile 0 1 input.xyz";
 
 class OrcaInterface {
 public:
-    explicit OrcaInterface();
+    explicit OrcaInterface(const json& orcaSettings = ORCASettings);
     ~OrcaInterface();
 
     // Setzt die ORCA Eingabedaten
     void setInputFile(const std::string& inputFile);
 
+    bool createInputFile(const std::string& content=ORCASettingsString);
+
     // Führt ORCA aus und wartet auf die Beendigung
     bool runOrca();
+
+    double getEnergy();
+    Matrix getGradient();
+    Vector getDipole();
+    std::vector<double> getCharges();
+    std::vector<std::vector<double>> getBondOrders();
+
+private:
+    std::string m_inputFilePath;
+    std::string m_outputFilePath;
+    json m_orcaSettings;
+    json m_OrcaJSON;
+
+    // Hilfsfunktionen
 
     // Liest die Ergebnisse aus der ORCA-Ausgabedatei
     void readOrcaJSON();
@@ -38,14 +67,5 @@ public:
     // Create Output.JSON
     bool getOrcaJSON();
 
-private:
-    std::string inputFilePath;
-    std::string outputFilePath;
-    json OrcaJSON;
-
-    // Hilfsfunktionen
-    bool createInputFile(const std::string& content);
     bool executeOrcaProcess();
 };
-
-#endif //ORCAINTERFACE_H

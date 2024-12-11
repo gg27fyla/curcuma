@@ -55,7 +55,7 @@ public:
     bool UpdateMolecule(const double* coord);
 
     bool Error() { return m_error_count >= 10; }
-    double GFNCalculation(int parameter = 2, double* grad = 0);
+    double GFNCalculation(int parameter = 2, double* grad = nullptr);
 
     void clear();
 

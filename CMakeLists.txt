@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.18)
 project(curcuma)
 
+option (USE_ORCA
+    "You have to have ORCA pre-installed" OFF)
 option (USE_XTB
     "Compile XTB and use as library" OFF)
 
@@ -177,7 +179,6 @@ set(curcuma_core_SRC
         src/tools/formats.h
         src/tools/geometry.h
         src/tools/general.h
-        src/core/orcainterface.h
         src/core/orcainterface.cpp
 )
     add_library(curcuma_core  ${curcuma_core_SRC})

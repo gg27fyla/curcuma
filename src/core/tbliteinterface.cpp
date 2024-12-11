@@ -299,7 +299,7 @@ double TBLiteInterface::GFNCalculation(int parameter, double* grad)
     // double* virial = 0;
     // tblite_get_result_virial(m_error, m_tblite_res, &virial);
     // std::cout << virial << std::endl;
-    if (grad != NULL) {
+    if (grad != nullptr) {
         tblite_get_result_gradient(m_error, m_tblite_res, grad);
         if (tblite_check_context(m_ctx)) {
             tbliteContextError();

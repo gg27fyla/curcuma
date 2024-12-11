@@ -21,6 +21,10 @@
 
 #include "src/tools/general.h"
 
+#ifdef USE_ORCA
+#include "src/core/orcainterface.h"
+#endif
+
 #ifdef USE_TBLITE
 #include "src/core/tbliteinterface.h"
 #endif
@@ -74,6 +78,12 @@ public:
     bool HasNan() const { return m_containsNaN; }
 
     bool Error() const { return m_error; }
+#ifdef USE_ORCA
+    OrcaInterface* getOrcaInterface() const
+    {
+        return m_orca;
+    }
+#endif
 #ifdef USE_TBLITE
     TBLiteInterface* getTBLiterInterface() const
     {
@@ -124,6 +134,9 @@ private:
     void InitialiseUFF();
     void CalculateUFF(bool gradient, bool verbose = false);
 
+    void InitialiseOrca();
+    void CalculateOrca(bool gradient, bool verbose = false);
+
     void InitialiseTBlite();
     void CalculateTBlite(bool gradient, bool verbose = false);
 
@@ -143,6 +156,9 @@ private:
     void CalculateFF(bool gradient, bool verbose = false);
 
     json m_controller;
+#ifdef USE_ORCA
+    OrcaInterface* m_orca = nullptr;
+#endif
 
 #ifdef USE_TBLITE
     TBLiteInterface* m_tblite = NULL;
@@ -161,6 +177,7 @@ private:
     eigenUFF* m_uff = NULL;
     QMDFF* m_qmdff = NULL;
     ForceField* m_forcefield = NULL;
+    StringList m_orca_methods = { "orca" };
     StringList m_uff_methods = { "fuff" };
     StringList m_ff_methods = { "uff", "uff-d3", "qmdff" };
     StringList m_qmdff_method = { "fqmdff" };
