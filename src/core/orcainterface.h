@@ -32,7 +32,7 @@ static json method{
         { "basename", "input" },
 };
 
-static std::string InputString = "! HF def2-TZYPP ENGRAD\n*xyzfile 0 1 input.xyz";
+static std::string InputString = "! HF def2-TZVPP ENGRAD\n*xyzfile 0 1 input.xyz ";
 
 
 

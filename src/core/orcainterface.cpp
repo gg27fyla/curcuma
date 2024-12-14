@@ -26,7 +26,7 @@
 
 OrcaInterface::OrcaInterface()
 {
-    m_inputFilePath = "orca.inp";
+    m_inputFilePath = "input";
     m_outputFilePath = "orca.out";
 }
 
@@ -73,7 +73,7 @@ bool OrcaInterface::executeOrcaProcess() const {
     // Hier rufen wir das ORCA-Programm über einen Systemaufruf auf
     std::stringstream command;
     command << "orca " << m_inputFilePath << " > " << m_outputFilePath;
-    int result = std::system(command.str().c_str());
+    const int result = std::system(command.str().c_str());
     
     // Überprüfen, ob der ORCA-Prozess erfolgreich ausgeführt wurde
     return (result == 0);
@@ -83,7 +83,16 @@ bool OrcaInterface::runOrca() {
     // Starten Sie den ORCA-Prozess und warten Sie auf das Ergebnis
     std::cout << "Starte ORCA..." << std::endl;
     if (executeOrcaProcess()) {
-        std::cout << "ORCA abgeschlossen!" << std::endl;
+        std::cout << "ORCA Rechnung abgeschlossen!" << std::endl;
+        if (getOrcaJSON()) {
+            readOrcaJSON();
+            for (auto& [key, val] : m_OrcaJSON.items())
+            {
+                std::cout << "key: " << key << ", value:" << val << '\n';
+            }
+            std::cout << getEnergy() << std::endl;
+
+        }
         return true;
     } else {
         std::cerr << "Fehler beim Ausführen von ORCA!" << std::endl;
@@ -106,11 +115,12 @@ bool OrcaInterface::getOrcaJSON() {
     // Überprüfen, ob der ORCA-Prozess erfolgreich ausgeführt wurde
     return (result == 0);
 }
-/*
+
 double OrcaInterface::getEnergy()
 {
-    return m_OrcaJSON["Geometry_1"]["DFT_Energy"]["FINALEN"];
+    return m_OrcaJSON["Geometry_1"]["SCF_Energy"]["SCF_ENERGY"];
 }
+/*
 Matrix OrcaInterface::getGradient()
 {
     return m_OrcaJSON["Geometry_1"]["Nuclear_Gradient"]["GRAD"];

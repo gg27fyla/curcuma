@@ -1065,22 +1065,22 @@ int main(int argc, char **argv) {
 
         } else if (strcmp(argv[1], "-orca") == 0) {
 
-            if (argc < 3) {
-                std::cerr << "Please use curcuma as follows:\ncurcuma -orca input" << std::endl;
-                return -1;
-            }
-
             OrcaInterface orca;
-            // Eingabedatei zuweisen
-            orca.setInputFile(argv[2]);
+
+            if (argc < 3) {
+                // creating a new inupt file
+                std::cout << "Creating an input..." << std::endl;
+                orca.createInputFile();
+            } else {
+                // set custom ORCA Input file
+                orca.setInputFile(argv[2]);
+            }
 
             // ORCA ausführen
             if (!orca.runOrca()) {
                 return -1;
             }
-            // ORCA-Ausgabe lesen
-            orca.getOrcaJSON();
-            orca.readOrcaJSON();
+
 
         } else if (strcmp(argv[1], "-stride") == 0) {
 
