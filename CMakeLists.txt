@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.18)
 project(curcuma)
 
-option (USE_ORCA
-    "You have to have ORCA pre-installed" OFF)
 option (USE_XTB
     "Compile XTB and use as library" OFF)
 

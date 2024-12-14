@@ -22,7 +22,7 @@
 
 #include "src/core/molecule.h"
 
-static json ORCASettings{
+static json method{
         { "methode", "HF" },
         { "basis", "def2-TZVPP" },
         { "keyword", "ENGRAD" },
@@ -32,17 +32,20 @@ static json ORCASettings{
         { "basename", "input" },
 };
 
-static std::string ORCASettingsString = "! HF def2-TZYPP ENGRAD\n*xyzfile 0 1 input.xyz";
+static std::string InputString = "! HF def2-TZYPP ENGRAD\n*xyzfile 0 1 input.xyz";
+
+
 
 class OrcaInterface {
 public:
-    explicit OrcaInterface(const json& orcaSettings = ORCASettings);
+    explicit OrcaInterface();
     ~OrcaInterface();
 
     // Setzt die ORCA Eingabedaten
     void setInputFile(const std::string& inputFile);
 
-    bool createInputFile(const std::string& content=ORCASettingsString);
+    bool createInputFile(const std::string& content=InputString);
+    void setMethod(const json& Method);
 
     // Führt ORCA aus und wartet auf die Beendigung
     bool runOrca();
@@ -56,7 +59,8 @@ public:
 private:
     std::string m_inputFilePath;
     std::string m_outputFilePath;
-    json m_orcaSettings;
+    std::string m_inputString = InputString;
+    json m_Method = method;
     json m_OrcaJSON;
 
     // Hilfsfunktionen
@@ -67,5 +71,7 @@ private:
     // Create Output.JSON
     bool getOrcaJSON();
 
-    bool executeOrcaProcess();
+    bool executeOrcaProcess() const;
+
+    std::string generateInputString();
 };

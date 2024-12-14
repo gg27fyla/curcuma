@@ -24,22 +24,21 @@
 #include <cstdlib>
 #include <sstream>
 
-OrcaInterface::OrcaInterface(const json& orcaSettings) :
-    m_orcaSettings(orcaSettings)
+OrcaInterface::OrcaInterface()
 {
     m_inputFilePath = "orca.inp";
     m_outputFilePath = "orca.out";
 }
 
 OrcaInterface::~OrcaInterface() {
-    // Optionale Bereinigungsoperationen
 }
 
 void OrcaInterface::setInputFile(const std::string& inputFile) {
     m_inputFilePath = inputFile;
 }
 
-bool OrcaInterface::createInputFile(const std::string& content) {
+bool OrcaInterface::createInputFile(const std::string& content)
+{
     std::ofstream outFile(m_inputFilePath);
     if (!outFile) {
         std::cerr << "Fehler beim Erstellen der Eingabedatei!" << std::endl;
@@ -49,8 +48,28 @@ bool OrcaInterface::createInputFile(const std::string& content) {
     outFile.close();
     return true;
 }
+std::string OrcaInterface::generateInputString()
+{
+    std::stringstream inputString;
+    // Hinzufügen der Methode und Basis-Sets
+    inputString << "! " << m_Method["method"].get<std::string>() << " "
+                << m_Method["basis"].get<std::string>() << " "
+                << m_Method["keyword"].get<std::string>() << "\n";
 
-bool OrcaInterface::executeOrcaProcess() {
+    // Hinzufügen der Dateityp-, Lade- und Multiplikationsinformationen
+    inputString << "*" << m_Method["filetype"].get<std::string>() << " "
+                << m_Method["charge"].get<int>() << " "
+                << m_Method["mult"].get<int>() << " "
+                << m_Method["basename"].get<std::string>() << ".xyz\n";
+
+    return inputString.str();
+}
+void OrcaInterface::setMethod(const json& Method)
+{
+    m_Method = Method;
+}
+
+bool OrcaInterface::executeOrcaProcess() const {
     // Hier rufen wir das ORCA-Programm über einen Systemaufruf auf
     std::stringstream command;
     command << "orca " << m_inputFilePath << " > " << m_outputFilePath;
