@@ -18,7 +18,10 @@
  */
 
 #pragma once
+
 #include "src/core/energycalculator.h"
+
+#include "src/capabilities/optimiser/lbfgs.h"
 
 #include "external/CxxThreadPool/include/CxxThreadPool.h"
 
@@ -49,7 +52,7 @@ static json CurcumaOptJson{
     { "LBFGS_wolfe", 0.9 },
     { "SingleStep", 1 },
     { "ConvCount", 11 },
-    { "GradNorm", 1e-4 },
+    { "GradNorm", 5e-4 },
     { "threads", 1 },
     { "Charge", 0 },
     { "Spin", 0 },
@@ -58,7 +61,17 @@ static json CurcumaOptJson{
     { "serial", false },
     { "hessian", 0 },
     { "fusion", false },
-    { "maxrise", 100 }
+    { "maxrise", 100 },
+    { "optimethod", 0 },
+    { "inithess", false },
+    { "lambda", 0.1 },
+    { "diis_hist", 5 },
+    { "diis_start", 5 },
+    { "mo_scheme", false },
+    { "mo_scale", 1.0 },
+    { "mo_homo", -1 },
+    { "mo_lumo", -1 }
+
 };
 
 const json OptJsonPrivate{
@@ -124,6 +137,7 @@ public:
     std::string Basename() const { return m_basename; }
     // inline json Parameter() const { return m_param; }
     inline json SCF() const { return m_scf; }
+    void setOptiMethod(int method) { m_optimethod = method; }
 
 protected:
     std::string m_result;
@@ -132,6 +146,7 @@ protected:
     std::vector<Molecule> m_intermediate;
     std::string m_basename;
     CurcumaOpt* m_curcumaOpt;
+    int m_optimethod = 0;
 };
 
 class OptThread : public SPThread {
@@ -215,9 +230,13 @@ public:
     inline const std::vector<Molecule>* Molecules() const { return &m_molecules; }
 
     Molecule LBFGSOptimise(Molecule* host, std::string& output, std::vector<Molecule>* intermediate, std::vector<double>& charges, int thread = -1, const std::string& basename = "base");
+    Molecule GPTLBFGS(Molecule* host, std::string& output, std::vector<Molecule>* intermediate, std::vector<double>& charges, int thread = -1, const std::string& basename = "base");
+
     double SinglePoint(const Molecule* initial, std::string& output, std::vector<double>& charges);
 
     void clear();
+    void WriteMO(int n, int m);
+    void WriteMOAscii();
 
 private:
     /* Lets have this for all modules */
@@ -242,10 +261,15 @@ private:
     Molecule m_molecule;
     json m_parameters;
     std::vector<Molecule> m_molecules;
-    bool m_file_set = false, m_mol_set = false, m_mols_set = false, m_writeXYZ = true, m_printoutput = true, m_singlepoint = false, m_fusion = false;
-    int m_hessian = 0;
+    Vector m_orbital_energies;
+    Matrix m_molecular_orbitals;
+
+    bool m_file_set = false, m_mol_set = false, m_mols_set = false, m_writeXYZ = true, m_printoutput = true, m_singlepoint = false, m_fusion = false, m_optH = false, m_inithess = false, m_mo_scheme = false;
+    int m_hessian = 0, m_num_electrons = 0, m_mo_homo = -1, m_mo_lumo = -1;
     int m_threads = 1;
-    double m_dE = 0.1, m_dRMSD = 0.01, m_maxenergy = 100;
+    int m_ConvCount = 1;
+    double m_dE = 0.1, m_dRMSD = 0.01, m_maxenergy = 100, m_GradNorm = 1e-5, m_lambda = 0.1, m_mo_scale = 1.0;
     int m_charge = 0, m_spin = 0;
     int m_serial = false;
+    int m_maxiter = 100, m_maxrise = 10, m_optimethod = 1, m_diis_hist = 10, m_diis_start = 10;
 };
