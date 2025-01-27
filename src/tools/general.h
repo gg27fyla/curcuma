@@ -39,6 +39,7 @@
 #include "src/core/elements.h"
 #include "src/core/global.h"
 #include "src/core/molecule.h"
+using namespace curcuma;
 
 #include "src/tools/formats.h"
 
@@ -273,12 +274,12 @@ inline double ShannonEntropy(const std::vector<std::pair<double, double>>& histo
     return -1 * entropy;
 }
 
-inline std::string Vector2String(const std::vector<int>& vector)
+inline std::string Vector2String(const std::vector<int>& vector, const std::string& delim = "|")
 {
     std::string result = " ";
 
     for (auto i : vector)
-        result += std::to_string(i) + "|";
+        result += std::to_string(i) + delim;
     result.pop_back();
 
     result += " ";
@@ -286,16 +287,45 @@ inline std::string Vector2String(const std::vector<int>& vector)
     return result;
 }
 
-inline std::string DoubleVector2String(const std::vector<double>& vector)
+inline std::string DoubleVector2String(const std::vector<double>& vector, const std::string& delim = "|")
 {
     std::string result = "";
 
     for (auto i : vector)
-        result += std::to_string(i) + "|";
+        result += std::to_string(i) + delim;
     result.pop_back();
 
     result += " ";
 
+    return result;
+}
+
+inline std::string DoubleVector2String(const Vector& vector, const std::string& delim = "|")
+{
+    std::string result = "";
+
+    for (int i = 0; i < vector.rows(); ++i)
+        result += std::to_string(vector[i]) + delim;
+    result.pop_back();
+
+    result += " ";
+
+    return result;
+}
+
+inline std::string Geometry2String(const Geometry& matrix)
+{
+    std::string result = "";
+    for (int j = 0; j < matrix.rows(); ++j)
+        for (int i = 0; i < matrix.cols(); ++i) 
+            result += std::to_string(matrix(j,i)) + "|";
+    //    }
+    //    result += "|";
+
+    result.pop_back();
+    result.pop_back();
+
+    result += "";
     return result;
 }
 
@@ -316,6 +346,31 @@ inline std::string Matrix2String(const Matrix& matrix)
     return result;
 }
 
+inline void String2Matrix(Matrix &matrix, const std::string &string, const std::string &delim = "|")
+{
+    #pragma message ("fix string char stuff")
+    StringList elements = SplitString(string, "|");
+    int rows = matrix.rows();
+    int cols = matrix.cols();
+    int index = 0;
+    for(int i = 0; i < rows; ++i)
+        for(int j = 0; j < cols; ++j)
+            matrix(j,i) = std::stod(elements[index++]);
+}
+
+inline void String2Geometry(Geometry &matrix, const std::string &string, const std::string &delim = "|")
+{
+    #pragma message ("fix string char stuff")
+    StringList elements = SplitString(string, "|");
+    int rows = matrix.rows();
+    int cols = matrix.cols();
+    int index = 0;
+    for(int i = 0; i < rows; ++i)
+        for(int j = 0; j < cols; ++j)
+            matrix(i, j) = std::stod(elements[index++]);
+}
+
+
 inline std::vector<int> String2Vector(const std::string& string)
 {
     std::vector<int> vector;
@@ -328,6 +383,22 @@ inline std::vector<int> String2Vector(const std::string& string)
         }
     }
     return vector;
+}
+
+inline Vector String2EigenVector(const std::string& string, const char* delim = "|")
+{
+    std::vector<double> tmpvector;
+
+    StringList tmp = SplitString(string, delim);
+    for (auto i : tmp) {
+        try {
+            tmpvector.push_back(std::stod(i));
+        } catch (const std::invalid_argument& argument) {
+            continue;
+        }
+    }
+    return Eigen::Map<Vector>(tmpvector.data(), tmpvector.size());
+    ;
 }
 
 inline std::string VectorVector2String(const std::vector<std::vector<int>>& vector)

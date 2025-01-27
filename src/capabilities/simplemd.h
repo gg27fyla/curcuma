@@ -255,15 +255,15 @@ private:
 
     void InitVelocities(double scaling = 1.0);
 
-    double FastEnergy(double* grad);
-    double CleanEnergy(double* grad);
+    double FastEnergy();
+    double CleanEnergy();
 
     void PrintMatrix(const double* matrix) const;
 
     bool WriteGeometry();
-    void Verlet(double* grad);
-    void Rattle(double* grad);
-    void ApplyRMSDMTD(double* grad);
+    void Verlet();
+    void Rattle();
+    void ApplyRMSDMTD();
 
     void Rattle_Verlet_First(double* coord, double* grad);
     void Rattle_Constrain_First(double* coord, double* grad);
@@ -272,8 +272,8 @@ private:
 
     void AdjustRattleTolerance();
 
-    void RemoveRotation(std::vector<double>& velo);
-    void RemoveRotations(std::vector<double>& velo);
+    void RemoveRotation();
+    void RemoveRotations();
 
     void EKin();
     void AverageQuantities();
@@ -286,17 +286,17 @@ private:
 
     void InitialiseWalls();
 
-    double ApplySphericLogFermiWalls(double* grad);
-    double ApplyRectLogFermiWalls(double* grad);
+    double ApplySphericLogFermiWalls();
+    double ApplyRectLogFermiWalls();
 
-    double ApplySphericHarmonicWalls(double* grad);
-    double ApplyRectHarmonicWalls(double* grad);
+    double ApplySphericHarmonicWalls();
+    double ApplyRectHarmonicWalls();
 
     void InitConstrainedBonds();
 
-    std::function<void(double* grad)> Integrator;
-    std::function<double(double* grad)> Energy;
-    std::function<double(double* grad)> WallPotential;
+    std::function<void()> Integrator;
+    std::function<double()> Energy;
+    std::function<double()> WallPotential;
 
     std::vector<std::pair<std::pair<int, int>, double>> m_bond_constrained, m_bond_13_constrained;
 #ifdef USE_Plumed
@@ -315,7 +315,9 @@ private:
     double m_T0 = 298.15, m_aver_Temp = 0, m_aver_rattle_Temp = 0, m_rmsd = 1.5;
     double m_x0 = 0, m_y0 = 0, m_z0 = 0;
     double m_Ekin_exchange = 0.0;
-    std::vector<double> m_current_geometry, m_mass, m_velocities, m_gradient, m_rmass, m_virial, m_gradient_bias, m_scaling_vector_linear, m_scaling_vector_nonlinear, m_rt_geom_1, m_rt_geom_2, m_rt_velo;
+//    std::vector<double> m_current_geometry, m_mass, m_velocities, m_gradient, m_rmass, m_virial, m_gradient_bias, m_scaling_vector_linear, m_scaling_vector_nonlinear, m_rt_geom_1, m_rt_geom_2, m_rt_velo;
+    std::vector<double>  m_virial, m_gradient_bias, m_scaling_vector_linear, m_scaling_vector_nonlinear, m_rt_geom_1, m_rt_geom_2, m_rt_velo;
+
     std::vector<Position> m_curr_dipoles;
     std::vector<int> m_atomtype;
     Molecule m_molecule, m_reference, m_target, m_rmsd_mtd_molecule;
@@ -330,6 +332,8 @@ private:
     std::vector<int> m_rmsd_indicies;
     std::vector<std::vector<int> > m_rmsd_fragments, m_start_fragments;
 
+    Geometry m_eigen_geometry, m_eigen_geometry_old, m_eigen_gradient, m_eigen_gradient_old, m_eigen_velocities;
+    Vector m_eigen_masses, m_eigen_inv_masses;
 
     std::vector<Geometry> m_bias_structures;
     std::vector<BiasStructure> m_biased_structures;

@@ -25,6 +25,32 @@ option (WriteMoreInfo
 option (USE_Plumed
     "Enable interface to plumed for metadynamics")
 
+option(USE_AVX2
+    "Enable AVX2 instructions" OFF)
+
+option(USE_BLAS
+    "Enable BLAS" OFF)
+
+option(USE_MKL
+    "Enable MKL" OFF)
+
+if(USE_MKL)
+    if(NOT DEFINED MKL_ROOT)
+        set(MKL_ROOT $ENV{MKL_ROOT})
+    endif()
+    message(STATUS "MKL_ROOT set to ${MKL_ROOT}")
+    if( MKL_ROOT STREQUAL "")
+        message(FATAL_ERROR "MKL_ROOT not set")
+        message(FATAL_ERROR "Please set MKL_ROOT to the root directory of your MKL installation")
+        message(FATAL_ERROR "For example: export MKL_ROOT=/opt/intel/oneapi/mkl/latest")
+        message(FATAL_ERROR "Or use -DMKL_ROOT=/opt/intel/oneapi/mkl/latest")
+    endif()
+    set(MKLROOT ${MKL_ROOT})
+
+endif()
+
+
+
 add_subdirectory(${PROJECT_SOURCE_DIR}/external/fmt EXCLUDE_FROM_ALL)
 
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
@@ -40,7 +66,9 @@ include_directories(SYSTEM  ${PROJECT_SOURCE_DIR}/external/fmt/include
                             ${PROJECT_SOURCE_DIR}/external/ripser
                             ${PROJECT_SOURCE_DIR}/external/eigen-3.4.0
                             ${PROJECT_SOURCE_DIR}/external/cpp-d4/include
-                            ${PROJECT_SOURCE_DIR}/external/)
+                            ${PROJECT_SOURCE_DIR}/external/
+                            ${PROJECT_SOURCE_DIR}/external/ulysses-main/src/
+                            )
 
 
 include_directories(${PROJECT_SOURCE_DIR} ${PROJECT_BINARY_DIR} )
@@ -119,6 +147,11 @@ else()
 endif(WIN32)
 ENDIF(CMAKE_COMPILER_IS_GNUCXX)
 
+if(USE_AVX2)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2")
+
+endif()
+
 if(NOT EXISTS ${PROJECT_SOURCE_DIR}/external/json.hpp)
   file(DOWNLOAD https://github.com/nlohmann/json/releases/download/v3.9.1/json.hpp ${PROJECT_SOURCE_DIR}/external/json.hpp
        TIMEOUT 60  # seconds
@@ -133,8 +166,15 @@ if(NOT EXISTS ${PROJECT_SOURCE_DIR}/external/eigen-3.4.0.zip)
        EXPECTED_HASH SHA256=1ccaabbfe870f60af3d6a519c53e09f3dcf630207321dffa553564a8e75c4fc8
        TLS_VERIFY ON)
 endif()
-
 file(ARCHIVE_EXTRACT INPUT ${PROJECT_SOURCE_DIR}/external/eigen-3.4.0.zip DESTINATION ${PROJECT_SOURCE_DIR}/external)
+
+if(NOT EXISTS ${PROJECT_SOURCE_DIR}/external/ulysses.zip)
+  file(DOWNLOAD https://gitlab.com/siriius/ulysses/-/archive/main/ulysses-main.zip  ${PROJECT_SOURCE_DIR}/external/ulysses.zip
+         TIMEOUT 60  # seconds
+         EXPECTED_HASH SHA256=1b55f9368c95f5a6dc334b6a86ad5a7583a397c9c59b4abb04f73ca4535cc393)
+endif()
+
+file(ARCHIVE_EXTRACT INPUT ${PROJECT_SOURCE_DIR}/external/ulysses.zip DESTINATION ${PROJECT_SOURCE_DIR}/external)
 
 configure_file (
   "${PROJECT_SOURCE_DIR}/src/global_config.h.in"
@@ -164,6 +204,7 @@ set(curcuma_core_SRC
         src/capabilities/simplemd.cpp
         src/capabilities/hessian.cpp
         src/capabilities/qmdfffit.cpp
+        src/core/ulyssesinterface.cpp
         src/core/energycalculator.cpp
         src/core/molecule.cpp
         src/core/fileiterator.cpp
@@ -188,7 +229,27 @@ set(curcuma_core_SRC
     src/capabilities/c_code/interface.c
 )
 add_library(km ${km_SRC})
-target_link_libraries(curcuma_core km)
+
+set(ulysess_SRC
+    src/core/interface/ulysses.cpp
+)
+add_library(ulysses_lib ${ulysess_SRC})
+add_executable(ulysses_helper
+src/helpers/ulysses_helper.cpp
+)
+
+if(USE_BLAS)
+    target_link_libraries(ulysses_lib blas)
+endif()
+if(USE_MKL)
+    target_link_libraries(ulysses_lib -m64 -I${MKLROOT}/include  -Wl,--no-as-needed -L${MKLROOT}/lib -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core)
+
+endif()
+target_link_libraries(ulysses_helper PUBLIC ulysses_lib)
+
+
+
+target_link_libraries(curcuma_core km ulysses_lib)
 
 add_executable(curcuma
         src/main.cpp
@@ -272,6 +333,8 @@ if(USE_TBLITE)
     add_executable(tblite_helper
            src/helpers/tblite_helper.cpp
     )
+
+
     if(C17)
         set_property(TARGET tblite_helper PROPERTY CXX_STANDARD 17)
     else()
@@ -349,8 +412,13 @@ if(USE_Plumed)
 endif()
 
 target_link_libraries(curcuma_core pthread fmt::fmt-header-only )
+if(USE_BLAS)
+    target_link_libraries(curcuma_core blas)
+endif()
+if(USE_MKL)
+    target_link_libraries(curcuma_core -m64 -I${MKLROOT}/include  -Wl,--no-as-needed -L${MKLROOT}/lib -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core)
 
-
+endif()
 if(WIN32) # Check if we are on Windows
 else()
      target_link_libraries(curcuma_core dl )
